@@ -30,7 +30,6 @@ A lightweight framework implementing real-time rendering techniques with C++ and
      - Point lights
 
 - Post processing
-  - Image-based lighting
   - Gamma correction
   - Multisample anti-aliasing
   - Bloom and HDR tone mapping
