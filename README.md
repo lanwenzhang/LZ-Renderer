@@ -1,10 +1,6 @@
 # LZ-Renderer
 A lightweight framework implementing real-time rendering techniques with C++ and OpenGL
 
-# Physically-Based Renderer
-
-A physically-based rendering system using the Cook-Torrance BRDF model and image-based lighting
-
 ## Screenshots
 * PBR
 
@@ -17,11 +13,27 @@ A physically-based rendering system using the Cook-Torrance BRDF model and image
 
 
 ## Features
-* Physically-based Rendering with GGX-Smith BRDFs
+- Physically-based Rendering with GGX-Smith BRDFs
 * Image-based lighting
-* Gamma correction
-* Multisample anti-aliasing
-* Bloom and HDR tone mapping
+
+
+- Deferred Rendering
+  - Geometry pass
+      - Instanced drawing
+      - G buffer
+        - Position attachment
+        - Normal attachment
+        - Albero attachment (diffuse + specular)
+  
+  - Lighting pass
+     - Blinn-Phong model
+     - Point lights
+
+- Post processing
+  - Image-based lighting
+  - Gamma correction
+  - Multisample anti-aliasing
+  - Bloom and HDR tone mapping
 
 ## Build
 
