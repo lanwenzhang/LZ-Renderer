@@ -11,6 +11,11 @@ A lightweight framework implementing real-time rendering techniques with C++ and
 
 ![LZ-Renderer](data/screenshot_02.gif)
 
+* PCF Soft Shadow
+* 
+![LZ-Renderer](data/screenshot_03.gif)
+
+
 
 ## Features
 - Physically-based Rendering with GGX-Smith BRDFs
