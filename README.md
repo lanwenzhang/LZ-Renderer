@@ -1,4 +1,4 @@
-# LZ-Renderer
+# GL-Render-Pad
 A lightweight framework implementing real-time rendering techniques with C++ and OpenGL
 
 ## Screenshots
