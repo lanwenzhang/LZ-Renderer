@@ -16,6 +16,8 @@ public:
 	static Framebuffer* createHDRBloomFbo(unsigned int width, unsigned int height);
 	static Framebuffer* createMultiSampleHDRFbo(unsigned int width, unsigned int height, unsigned int samples = 4);
 	static Framebuffer* createGBufferFbo(unsigned int width, unsigned int height);
+	static Framebuffer* createPointShadowFbo(unsigned int width, unsigned int height);
+
 
 public:
 

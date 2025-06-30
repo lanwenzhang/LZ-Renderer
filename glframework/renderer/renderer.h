@@ -23,6 +23,8 @@ public:
 
 	void renderObject(Object* object, Camera* camera, std::vector<PointLight*> pointLights = {});
 
+	void renderShadowMap(Camera* camera, const std::vector<Mesh*>& meshes, std::vector<PointLight*> pointLights = {});
+
 	void msaaResolve(Framebuffer* src, Framebuffer* dst);
 
 	void setClearColor(glm::vec3 color);
@@ -48,6 +50,8 @@ private:
 	Shader* mPbrShader{ nullptr };
 	Shader* mGBufferShader{ nullptr };
 	Shader* mLightingShader{ nullptr };
+	Shader* mShadowDistanceShader{ nullptr };
+	Shader* mPhongPointShadowShader{ nullptr };
 
 	// Objects
 	std::vector<Mesh*> mOpacityObjects{};

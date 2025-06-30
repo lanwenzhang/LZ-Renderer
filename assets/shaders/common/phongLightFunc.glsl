@@ -1,6 +1,8 @@
+#include "lightStruct.glsl"
+
 uniform float shiness;
 
-// 5 Diffuse
+
 vec3 calculateDiffuse(vec3 lightColor, vec3 objectColor, vec3 lightDir, vec3 normal){
 
 	float diffuse = clamp(dot(-lightDir, normal), 0.0f, 1.0f);
@@ -10,7 +12,6 @@ vec3 calculateDiffuse(vec3 lightColor, vec3 objectColor, vec3 lightDir, vec3 nor
 }
 
 
-// 6 Specular
 vec3 calculateSpecular(vec3 lightColor, vec3 lightDir, vec3 normal, vec3 viewDir, float intensity){
 
 	// 6.1 Remove the light from the back
@@ -24,8 +25,6 @@ vec3 calculateSpecular(vec3 lightColor, vec3 lightDir, vec3 normal, vec3 viewDir
 	// 6.3 Control the size
 	specular = pow(specular, shiness);
 
-//	float specularMask = texture(specularMaskSampler, uv).r;
-
 	// 6.4 Calculate specular color
 	vec3 specularColor = lightColor * specular * flag * intensity;
 
@@ -38,7 +37,9 @@ vec3 calculateSpotLight(SpotLight light, vec3 normal, vec3 viewDir){
 
 	// 7.1 Prepare variables
 	vec3 objectColor = texture(sampler, uv).xyz;
+
 	vec3 lightDir = normalize(worldPosition - light.position);
+
 	vec3 targetDir = normalize(light.targetDirection);
 
 	float cGamma = dot(lightDir, targetDir);
@@ -83,10 +84,10 @@ vec3 calculatePointLight(vec3 objectColor, PointLight light, vec3 normal, vec3 v
 	float dist = length(worldPosition - light.position);
 	float attenuation = 1.0 / (light.k2 * dist * dist + light.k1 * dist + light.kc);
 
-	// 9.2 Diffuse reflection
+	// Diffuse reflection
 	vec3 diffuseColor = calculateDiffuse(light.color, objectColor, lightDir, normal);
 
-	// 9.3 Specular
+	// Specular
 	vec3 specularColor = calculateSpecular(light.color, lightDir, normal, viewDir, light.specularIntensity);
 
 	return (diffuseColor + specularColor) * attenuation;

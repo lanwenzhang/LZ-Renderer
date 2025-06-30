@@ -120,7 +120,6 @@ void prepare() {
     auto smesh = new Mesh(sgeo, screenMat);
     scene->addChild(smesh);
 
-
     // 4 Create light
     glm::vec3 lightPositions[] = {
             glm::vec3(-3.0f,  3.0f, 10.0f),
@@ -143,11 +142,10 @@ void prepare() {
 }
 
 
-
 void prepareCamera() {
 
     camera = new PerspectiveCamera(60.0f, (float)glApp->getWidth() / glApp->getHeight(), 0.1f, 1000.0f);
-
+    camera->setPosition(glm::vec3(0.0f, 0.0f, 20.0f));
     cameraControl = new GameCameraControl();
     cameraControl->setCamera(camera);
     cameraControl->setSensitivity(0.4f);
@@ -220,6 +218,7 @@ int main() {
     // 4 Set window loop
     while (glApp->update()) {
 
+        cameraControl->autoYaw(0.0015f);
         cameraControl->update();
 
         renderer->setClearColor(clearColor);

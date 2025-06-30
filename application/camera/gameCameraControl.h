@@ -10,8 +10,9 @@ public:
 
 	void onCursor(double xpos, double ypos)override;
 	void update()override;
-
+	void autoYaw(float deltaAnglePerFrame);
 	void setSpeed(float s) { mSpeed = s; }
+	float mAutoYawAngle{ 0.0f };
 
 private:
 	void pitch(float angle);

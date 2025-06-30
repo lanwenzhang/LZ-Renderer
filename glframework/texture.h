@@ -34,6 +34,9 @@ public:
 		// Cube map texture
 		Texture(const std::vector<std::string>& paths, unsigned int unit, unsigned int internalFormat = GL_RGBA);
 
+		// Shadow texture
+		static Texture* createDepthAttachmentCubeMap(unsigned int width, unsigned int height, unsigned int unit);
+
 		~Texture();
 
 		void bind();

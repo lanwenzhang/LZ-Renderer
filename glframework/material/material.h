@@ -8,7 +8,8 @@ enum class MaterialType {
 	CubeMaterial,
 	PbrMaterial,
 	GBufferMaterial,
-	LightingMaterial
+	LightingMaterial,
+	PhongPointShadowMaterial
 };
 
 class Material {

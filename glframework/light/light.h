@@ -2,6 +2,7 @@
 
 #include "../core.h"
 #include "../object.h"
+#include "shadow/shadow.h"
 
 class Light :public Object{
 
@@ -16,4 +17,5 @@ public:
 
 	float mSpecularIntensity{ 1.0f };
 	float mIntensity{ 1.0f };
+	Shadow* mShadow{ nullptr };
 };

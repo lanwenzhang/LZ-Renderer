@@ -75,3 +75,19 @@ void GameCameraControl::update() {
 		mCamera->mPosition += direction * mSpeed;
 	}
 }
+
+void GameCameraControl::autoYaw(float deltaTime) {
+	float degreesPerSecond = 20.0f;
+	mAutoYawAngle += degreesPerSecond * deltaTime;
+
+	float angleRad = glm::radians(mAutoYawAngle);
+	float radius = glm::length(mCamera->mPosition);
+
+	mCamera->mPosition.x = radius * sin(angleRad);
+	mCamera->mPosition.z = radius * cos(angleRad);
+
+	glm::vec3 target = glm::vec3(0.0f, mCamera->mPosition.y, 0.0f);
+	auto front = glm::normalize(target - mCamera->mPosition);
+	mCamera->mRight = glm::normalize(glm::cross(front, glm::vec3(0.0f, 1.0f, 0.0f)));
+	mCamera->mUp = glm::normalize(glm::cross(mCamera->mRight, front));
+}

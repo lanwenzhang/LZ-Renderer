@@ -283,6 +283,38 @@ Texture* Texture::createExrCubeMap(std::vector<std::string> paths) {
     return tex;
 }
 
+Texture* Texture::createDepthAttachmentCubeMap(unsigned int width, unsigned int height, unsigned int unit) {
+    Texture* dTex = new Texture();
+
+    unsigned int depth;
+    glGenTextures(1, &depth);
+    glBindTexture(GL_TEXTURE_CUBE_MAP, depth);
+
+    for (int i = 0; i < 6; i++) {
+        glTexImage2D(
+            GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+            0, GL_DEPTH_COMPONENT,
+            width, height, 0,
+            GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    }
+
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+
+    glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+
+    dTex->mTexture = depth;
+    dTex->mWidth = width;
+    dTex->mHeight = height;
+    dTex->mUnit = unit;
+    dTex->mTextureTarget = GL_TEXTURE_CUBE_MAP;
+
+    return dTex;
+}
+
 Texture::Texture() {}
 
 Texture::Texture(const std::string &path, unsigned int unit, unsigned int internalFormat){

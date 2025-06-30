@@ -10,7 +10,10 @@ public:
 
 	glm::mat4 getViewMatrix();
 	virtual glm::mat4 getProjectionMatrix();
+
 	virtual void scale(float deltaScale);
+	void setPosition(const glm::vec3& position);
+	void updateYaw(float deltaAngle);
 
 public:
 	glm::vec3 mPosition{ 0.0f, 0.0f, 5.0f };

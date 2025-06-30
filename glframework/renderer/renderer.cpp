@@ -1,11 +1,15 @@
 #include "renderer.h"
+#include "../material/material.h"
 #include "../material/screenMaterial.h"
 #include "../material/cubeMaterial.h"
 #include "../material/advanced/pbrMaterial.h"
 #include "../material/gBufferMaterial.h"
 #include "../material/lightingMaterial.h"
 #include "../mesh/instancedMesh.h"
+#include "../material/phongPointShadowMaterial.h"
 #include "../../application/camera/orthographicCamera.h"
+
+#include "../light/shadow/pointLightShadow.h"
 
 Renderer::Renderer() {
 
@@ -15,100 +19,13 @@ Renderer::Renderer() {
 
 	mGBufferShader = new Shader("assets/shaders/gBuffer.vert", "assets/shaders/gBuffer.frag");
 	mLightingShader = new Shader("assets/shaders/lighting.vert", "assets/shaders/lighting.frag");
+
+	mShadowDistanceShader = new Shader("assets/shaders/shadowDistance.vert", "assets/shaders/shadowDistance.frag");
+	mPhongPointShadowShader = new Shader("assets/shaders/phongPointShadow.vert", "assets/shaders/phongPointShadow.frag");
 }
 
 Renderer::~Renderer() {
 
-}
-
-void Renderer::setClearColor(glm::vec3 color) {
-
-	glClearColor(color.r, color.g, color.b, 1.0);
-}
-
-void Renderer::setDepthState(Material* material) {
-
-	if (material->mDepthTest) {
-
-		glEnable(GL_DEPTH_TEST);
-		glDepthFunc(material->mDepthFunc);
-	}
-	else {
-
-		glDisable(GL_DEPTH_TEST);
-	}
-
-	// 2.2 Depth write
-	if (material->mDepthWrite) {
-
-		glDepthMask(GL_TRUE);
-	}
-	else {
-
-		glDepthMask(GL_FALSE);
-	}
-
-}
-
-void Renderer::setPolygonOffsetState(Material* material) {
-
-	if (material->mPolygonOffset) {
-
-		glEnable(material->mPolygonOffsetType);
-		glPolygonOffset(material->mFactor, material->mUnit);
-
-	}
-	else {
-		glDisable(GL_POLYGON_OFFSET_FILL);
-		glDisable(GL_POLYGON_OFFSET_LINE);
-
-	}
-
-}
-
-void Renderer::setStencilState(Material* material) {
-
-	if (material->mStencilTest) {
-
-		glEnable(GL_STENCIL_TEST);
-
-		glStencilOp(material->mSFail, material->mZFail, material->mZPass);
-		glStencilMask(material->mStencilMask);
-		glStencilFunc(material->mStencilFunc, material->mStencilRef, material->mStencilFuncMask);
-
-	}
-	else {
-
-		glDisable(GL_STENCIL_TEST);
-	}
-}
-
-void Renderer::setBlendState(Material* material) {
-
-	if (material->mBlend) {
-
-		glEnable(GL_BLEND);
-		glBlendFunc(material->mSFactor, material->mDFactor);
-	}
-	else {
-
-		glDisable(GL_BLEND);
-	}
-}
-
-void Renderer::setFaceCullingState(Material* material) {
-
-	if (material->mFaceCulling) {
-
-		glEnable(GL_CULL_FACE);
-		glFrontFace(material->mFrontFace);
-		glCullFace(material->mCullFace);
-
-	}
-	else {
-
-		glDisable(GL_CULL_FACE);
-	}
 }
 
 void Renderer::msaaResolve(Framebuffer* src, Framebuffer* dst) {
@@ -174,7 +91,23 @@ void Renderer::render(Scene* scene, Camera* camera, std::vector<PointLight*> poi
 		}
 	);
 
-	// 4 Render objects
+	// 4 Render shadow
+	bool hasPhongPointShadowObject = std::any_of(
+		mOpacityObjects.begin(),
+		mOpacityObjects.end(),
+		[](const auto& object) {
+			return object->mMaterial->mType == MaterialType::PhongPointShadowMaterial;
+		}
+	);
+
+
+	if (hasPhongPointShadowObject) {
+
+		renderShadowMap(camera, mOpacityObjects, pointLights);
+	}
+
+
+	// 5 Render objects
 	for (int i = 0; i < mOpacityObjects.size(); i++) {
 
 		renderObject(mOpacityObjects[i], camera, pointLights);
@@ -231,6 +164,9 @@ Shader* Renderer::pickShader(MaterialType type) {
 		break;
 	case MaterialType::LightingMaterial:
 		result = mLightingShader;
+		break;
+	case MaterialType::PhongPointShadowMaterial:
+		result = mPhongPointShadowShader;
 		break;
 	default:
 		std::cout << "Unkown material type to shader" << std::endl;
@@ -420,6 +356,57 @@ void Renderer::renderObject(Object* object, Camera* camera,std::vector<PointLigh
 
 		}
 			break;
+		case MaterialType::PhongPointShadowMaterial: {
+
+			// pointer type change
+			PhongPointShadowMaterial* pointShadowMat = (PhongPointShadowMaterial*)material;
+			PointLightShadow* pointShadow = (PointLightShadow*)pointLights[0]->mShadow;
+
+			// Texture bind and sampling
+			shader->setInt("sampler", 0);
+			pointShadowMat->mDiffuse->bind();
+
+			shader->setInt("shadowMapSampler", 1);
+			pointShadow->mRenderTarget->mDepthAttachment->setUnit(1);
+			pointShadow->mRenderTarget->mDepthAttachment->bind();
+
+
+			// 3.2.3 MVP matrix
+			shader->setMatrix4x4("modelMatrix", mesh->getModelMatrix());
+			shader->setMatrix4x4("viewMatrix", camera->getViewMatrix());
+			shader->setMatrix4x4("projectionMatrix", camera->getProjectionMatrix());
+
+			auto normalMatrix = glm::mat3(glm::transpose(glm::inverse(mesh->getModelMatrix())));
+			shader->setMatrix3x3("normalMatrix", normalMatrix);
+
+			// 3.2.3 Light
+			shader->setVector3("pointLight.color", pointLights[0]->mColor);
+			shader->setFloat("pointLight.specularIntensity", pointLights[0]->mSpecularIntensity);
+			shader->setVector3("pointLight.position", pointLights[0]->getPosition());
+
+			shader->setFloat("shiness", pointShadowMat->mShiness);
+
+			shader->setFloat("pointLight.k2", pointLights[0]->mK2);
+			shader->setFloat("pointLight.k1", pointLights[0]->mK1);
+			shader->setFloat("pointLight.kc", pointLights[0]->mKc);
+
+			shader->setVector3("ambientColor", glm::vec3(0.1f));
+
+			// 3.2.4 Shadow
+			shader->setFloat("bias", pointShadow->mBias);
+			shader->setFloat("diskTightness", pointShadow->mDiskTightness);
+			shader->setFloat("pcfRadius", pointShadow->mPcfRadius);
+			shader->setFloat("far", pointShadow->mCamera->mFar);
+
+			// 3.2.4 Camera
+			shader->setVector3("cameraPosition", camera->mPosition);
+
+			// 3.2.5 
+			shader->setFloat("opacity", material->mOpacity);
+
+
+		}
+			break;
 		default:
 			break;
 		}
@@ -442,4 +429,178 @@ void Renderer::renderObject(Object* object, Camera* camera,std::vector<PointLigh
 	}
 }
 
+void Renderer::renderShadowMap(Camera* camera, const std::vector<Mesh*>& meshes, std::vector<PointLight*> pointLights) {
 
+	bool isPostProcessPass = true;
+	for (int i = 0; i < meshes.size(); i++) {
+
+		auto mesh = meshes[i];
+		if (mesh->mMaterial->mType != MaterialType::ScreenMaterial) {
+
+			isPostProcessPass = false;
+			break;
+		}
+	}
+
+	if (isPostProcessPass) {
+
+		return;
+	}
+
+	// 2 Save the current state
+	GLint preFbo;
+	glGetIntegerv(GL_FRAMEBUFFER_BINDING, &preFbo);
+
+	GLint preViewport[4];
+	glGetIntegerv(GL_VIEWPORT, preViewport);
+
+	// 3 Set shadowmap state
+	glEnable(GL_DEPTH_TEST);
+	glDepthFunc(GL_LESS);
+	glDepthMask(GL_TRUE);
+
+	// 4 Render shadow
+	PointLightShadow* pointShadow = (PointLightShadow*)pointLights[0]->mShadow;
+
+	auto lightMatrices = pointShadow->getLightMatrices(pointLights[0]->getPosition());
+
+	// 4.3 Bind fbo
+	glBindFramebuffer(GL_FRAMEBUFFER, pointShadow->mRenderTarget->mFBO);
+	glViewport(0, 0, pointShadow->mRenderTarget->mWidth, pointShadow->mRenderTarget->mHeight);
+
+	// 4.4 Render each cube map shadow
+	for (int i = 0; i < 6; i++) {
+
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, pointShadow->mRenderTarget->mDepthAttachment->getTexture(), 0);
+
+		glClear(GL_DEPTH_BUFFER_BIT);
+		mShadowDistanceShader->begin();
+
+		mShadowDistanceShader->setMatrix4x4("lightMatrix", lightMatrices[i]);
+		mShadowDistanceShader->setFloat("far", pointShadow->mCamera->mFar);
+		mShadowDistanceShader->setVector3("lightPosition", pointLights[0]->getPosition());
+
+
+		// 4.4.3 Render object
+		for (int i = 0; i < meshes.size(); i++) {
+
+			auto mesh = meshes[i];
+			auto geometry = mesh->mGeometry;
+
+			glBindVertexArray(geometry->getVao());
+			mShadowDistanceShader->setMatrix4x4("modelMatrix", mesh->getModelMatrix());
+
+			// 3.4 Draw
+			if (mesh->getType() == ObjectType::InstancedMesh) {
+
+				InstancedMesh* im = (InstancedMesh*)mesh;
+				glDrawElementsInstanced(GL_TRIANGLES, geometry->getIndicesCount(), GL_UNSIGNED_INT, 0, im->mInstanceCount);
+
+			}
+			else {
+
+				glDrawElements(GL_TRIANGLES, geometry->getIndicesCount(), GL_UNSIGNED_INT, 0);
+
+			}
+
+		}
+
+		mShadowDistanceShader->end();
+
+	}
+
+	// 5 Recover the state
+	glBindFramebuffer(GL_FRAMEBUFFER, preFbo);
+	glViewport(preViewport[0], preViewport[1], preViewport[2], preViewport[3]);
+
+}
+
+void Renderer::setClearColor(glm::vec3 color) {
+
+	glClearColor(color.r, color.g, color.b, 1.0);
+}
+
+void Renderer::setDepthState(Material* material) {
+
+	if (material->mDepthTest) {
+
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(material->mDepthFunc);
+	}
+	else {
+
+		glDisable(GL_DEPTH_TEST);
+	}
+
+	// 2.2 Depth write
+	if (material->mDepthWrite) {
+
+		glDepthMask(GL_TRUE);
+	}
+	else {
+
+		glDepthMask(GL_FALSE);
+	}
+
+}
+
+void Renderer::setPolygonOffsetState(Material* material) {
+
+	if (material->mPolygonOffset) {
+
+		glEnable(material->mPolygonOffsetType);
+		glPolygonOffset(material->mFactor, material->mUnit);
+
+	}
+	else {
+		glDisable(GL_POLYGON_OFFSET_FILL);
+		glDisable(GL_POLYGON_OFFSET_LINE);
+
+	}
+
+}
+
+void Renderer::setStencilState(Material* material) {
+
+	if (material->mStencilTest) {
+
+		glEnable(GL_STENCIL_TEST);
+
+		glStencilOp(material->mSFail, material->mZFail, material->mZPass);
+		glStencilMask(material->mStencilMask);
+		glStencilFunc(material->mStencilFunc, material->mStencilRef, material->mStencilFuncMask);
+
+	}
+	else {
+
+		glDisable(GL_STENCIL_TEST);
+	}
+}
+
+void Renderer::setBlendState(Material* material) {
+
+	if (material->mBlend) {
+
+		glEnable(GL_BLEND);
+		glBlendFunc(material->mSFactor, material->mDFactor);
+	}
+	else {
+
+		glDisable(GL_BLEND);
+	}
+}
+
+void Renderer::setFaceCullingState(Material* material) {
+
+	if (material->mFaceCulling) {
+
+		glEnable(GL_CULL_FACE);
+		glFrontFace(material->mFrontFace);
+		glCullFace(material->mCullFace);
+
+	}
+	else {
+
+		glDisable(GL_CULL_FACE);
+	}
+}

@@ -8,7 +8,6 @@ glm::mat4 Camera::getViewMatrix() {
 	
 	glm::vec3 front = glm::cross(mUp, mRight);
 
-
 	glm::vec3 center = mPosition + front;
 
 	return glm::lookAt(mPosition, center, mUp);
@@ -20,3 +19,7 @@ glm::mat4 Camera::getProjectionMatrix() {
 }
 
 void Camera::scale(float deltaScale){}
+
+void Camera::setPosition(const glm::vec3& position) {
+	mPosition = position;
+}

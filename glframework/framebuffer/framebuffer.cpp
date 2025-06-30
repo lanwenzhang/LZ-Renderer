@@ -170,6 +170,32 @@ Framebuffer* Framebuffer::createGBufferFbo(unsigned int width, unsigned int heig
     return fb;
 }
 
+Framebuffer* Framebuffer::createPointShadowFbo(unsigned int width, unsigned int height) {
+    Framebuffer* fb = new Framebuffer();
+
+    unsigned int fbo;
+    glGenFramebuffers(1, &fbo);
+    glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+    Texture* depthAttachment = Texture::createDepthAttachmentCubeMap(width, height, 0);
+    glFramebufferTexture2D(
+        GL_FRAMEBUFFER,
+        GL_DEPTH_ATTACHMENT,
+        GL_TEXTURE_CUBE_MAP_POSITIVE_X,
+        depthAttachment->getTexture(),
+        0
+    );
+    glDrawBuffer(GL_NONE);
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+
+    fb->mFBO = fbo;
+    fb->mDepthAttachment = depthAttachment;
+    fb->mWidth = width;
+    fb->mHeight = height;
+
+    return fb;
+}
+
 Framebuffer::~Framebuffer() {
 
 	if (mFBO){
