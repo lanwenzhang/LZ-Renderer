@@ -43,8 +43,8 @@ A lightweight framework implementing real-time rendering techniques with C++ and
 
 ### Windows
 ```
-git clone --recursive https://github.com/lanwenzhang/PBR-Renderer.git
-cd PBR-Renderer
+git clone --recursive https://github.com/lanwenzhang/GL-Render-Pad.git
+cd GL-Render-Pad
 mkdir build
 cd build
 cmake -G "Visual Studio 17 2022" -A x64 ..
