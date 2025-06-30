@@ -4,16 +4,16 @@ A lightweight framework implementing real-time rendering techniques with C++ and
 ## Screenshots
 * PBR
 
-![LZ-Renderer](data/screenshot_01.gif)
+![GL-Render-Pad](data/screenshot_01.gif)
 
 
 * Deferred Rendering
 
-![LZ-Renderer](data/screenshot_02.gif)
+![GL-Render-Pad](data/screenshot_02.gif)
 
 * PCF Soft Shadow
 
-![LZ-Renderer](data/screenshot_03.gif)
+![GL-Render-Pad](data/screenshot_03.gif)
 
 
 
