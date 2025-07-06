@@ -1,9 +1,8 @@
 #include "../common.h"
 #include "../core/application.h"
-#include "../wrapper/check_error.h"
-#include "../wrapper/shader.h"
 #include "../wrapper/framebuffer.h"
 #include "../wrapper/texture.h"
+#include "../wrapper/shader.h"
 
 #include "../loader/assimp_loader.h"
 #include "../renderer/camera/perspective_camera.h"
@@ -49,7 +48,7 @@ lzgl::renderer::ScreenMaterial* screenMat = nullptr;
 // 2 Mouse and keyboard event
 void OnResize(int width, int height) {
 
-    GL_CALL(glViewport(0, 0, width, height));
+    glViewport(0, 0, width, height);
 }
 
 void OnKey(int key, int action, int mods) {
@@ -90,18 +89,24 @@ void prepare() {
     sceneOff = new lzgl::renderer::Scene();
     scene = new lzgl::renderer::Scene();
 
+    // Prefilter
+    auto equirectTexture = lzgl::wrapper::Texture::createExrTexture("assets/textures/pbr/qwantani_dusk_2_4k.exr");
+    auto irradianceMap = renderer->generateIrradianceMap(equirectTexture, 512);
+    auto globalPrefilterMap = renderer->generatePrefilterMap(irradianceMap);
+    auto globalBrdfLUT = renderer->generateBrdfLUT();
+
     // Pass 01
     // Gun model
-    auto gun = lzgl::loader::AssimpLoader::load("assets/textures/pbr/gun.fbx");
+    auto gun = lzgl::loader::AssimpLoader::load("assets/textures/pbr/gun.fbx", irradianceMap, globalPrefilterMap, globalBrdfLUT);
     gun->setScale(glm::vec3(0.1f, 0.1f, 0.1f));
     gun->setPosition(glm::vec3(0.0f, 0.0f, 0.0f));
     gun->rotateZ(180.0f);
     sceneOff->addChild(gun);
 
     // Cube map
-    auto boxGeo = lzgl::renderer::Geometry::createBox(1.0f);
+    auto boxGeo = lzgl::renderer::Geometry::createBox(1.0f, true);
     auto boxMat = new lzgl::renderer::CubeMaterial();
-    boxMat->mDiffuse = lzgl::wrapper::Texture::createExrTexture("assets/textures/pbr/qwantani_dusk_2_4k.exr");
+    boxMat->mDiffuse = equirectTexture;
     auto boxMesh = new lzgl::renderer::Mesh(boxGeo, boxMat);
     sceneOff->addChild(boxMesh);
 
@@ -114,17 +119,19 @@ void prepare() {
 
     // 4 Create light
     glm::vec3 lightPositions[] = {
-            glm::vec3(-3.0f,  3.0f, 10.0f),
-            glm::vec3(3.0f,  3.0f, 10.0f),
-            glm::vec3(-3.0f, -3.0f, 10.0f),
-            glm::vec3(3.0f, -3.0f, 10.0f),
+        glm::vec3(-3.0f,  3.0f, 10.0f),
+        glm::vec3(3.0f,  3.0f, 10.0f),
+        glm::vec3(-3.0f, -3.0f, 10.0f),
+        glm::vec3(3.0f, -3.0f, 10.0f),
     };
+
     glm::vec3 lightColors[] = {
         glm::vec3(300.0f, 300.0f, 300.0f),
         glm::vec3(300.0f, 300.0f, 300.0f),
         glm::vec3(300.0f, 300.0f, 300.0f),
         glm::vec3(300.0f, 300.0f, 300.0f)
     };
+
     for (int i = 0; i < 4; i++) {
         auto pointLight = new lzgl::renderer::PointLight();
         pointLight->setPosition(lightPositions[i]);
@@ -137,7 +144,7 @@ void prepare() {
 void prepareCamera() {
 
     camera = new lzgl::renderer::PerspectiveCamera(60.0f, (float)glApp->getWidth() / glApp->getHeight(), 0.1f, 1000.0f);
-    camera->setPosition(glm::vec3(0.0f, 0.0f, 20.0f));
+    camera->setPosition(glm::vec3(0.0f, 0.0f, 40.0f));
     cameraControl = new lzgl::renderer::GameCameraControl();
     cameraControl->setCamera(camera);
     cameraControl->setSensitivity(0.4f);
@@ -199,8 +206,8 @@ int main() {
     glApp->setScrollCallback(OnScroll);
 
     // 5.3 Set openGl rendering viewport and clear canvas color
-    GL_CALL(glViewport(0, 0, WIDTH, HEIGHT));
-    GL_CALL(glClearColor(0.0f, 0.18f, 0.65f, 1.0f));
+    glViewport(0, 0, WIDTH, HEIGHT);
+    glClearColor(0.0f, 0.18f, 0.65f, 1.0f);
 
     // 4 Set up camera, objects, UI
     prepareCamera();
@@ -210,7 +217,7 @@ int main() {
     // 4 Set window loop
     while (glApp->update()) {
 
-        cameraControl->autoYaw(0.0015f);
+        cameraControl->autoYaw(0.002f);
         cameraControl->update();
 
         renderer->setClearColor(clearColor);

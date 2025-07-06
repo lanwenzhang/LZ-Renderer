@@ -33,9 +33,9 @@ namespace lzgl::renderer {
 		mQuad = Geometry::createScreenPlane();
 		mOriginFbo = lzgl::wrapper::Framebuffer::createHDRBloomFbo(mWidth, mHeight);
 
-		mExtractBrightShader = new Shader("assets/shaders/advanced/bloom/extractBright.vert", "assets/shaders/advanced/bloom/extractBright.frag");
-		mUpSampleShader = new Shader("assets/shaders/advanced/bloom/upSample.vert", "assets/shaders/advanced/bloom/upSample.frag");
-		mMergeShader = new Shader("assets/shaders/advanced/bloom/merge.vert", "assets/shaders/advanced/bloom/merge.frag");
+		mExtractBrightShader = new Shader("shaders/bloom/extract_bright.vert", "shaders/bloom/extract_bright.frag");
+		mUpSampleShader = new Shader("shaders/bloom/up_sample.vert", "shaders/bloom/up_sample.frag");
+		mMergeShader = new Shader("shaders/bloom/merge.vert", "shaders/bloom/merge.frag");
 	}
 
 	void Bloom::extractBright(lzgl::wrapper::Framebuffer* src, lzgl::wrapper::Framebuffer* dst) {

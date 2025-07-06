@@ -12,12 +12,16 @@ uniform vec3 cameraPosition;
 
 #include "../common/light_struct.glsl"
 
+// material textures
 uniform sampler2D albedoTex;
 uniform sampler2D roughnessTex;
 uniform sampler2D metallicTex;
 uniform sampler2D normalTex;
 
+// IBL maps
 uniform samplerCube irradianceMap;
+uniform samplerCube prefilterMap;
+uniform sampler2D brdfLUT;
 
 uniform PointLight pointLights[4];
 
@@ -130,10 +134,25 @@ void main()
 	}
 
 	// 3 Calculate indirect light
-	// 3.1 Indirect diffuse
+	// 3.1 diffuse IBL
 	vec3 irradiance = texture(irradianceMap, N).rgb;
 	vec3 kd = 1.0 - fresnelSchlickRoughness(F0, max(dot(N, V), 0.0), roughness);
-	vec3 ambient = irradiance * albedo * kd;
+	kd *= (1.0 - metallic);
+	vec3 diffuseIBL = irradiance * albedo * kd;
+
+	// 3.2 specular IBL
+	const float MAX_REFLECTION_LOD = 4.0;
+	vec3 R = reflect(-V, N);
+	vec3 prefilteredColor = textureLod(prefilterMap, R, roughness * MAX_REFLECTION_LOD).rgb;
+
+	float NdotV = max(dot(N, V), 0.0);
+	vec2 brdfSample = texture(brdfLUT, vec2(NdotV, roughness)).rg;
+
+	vec3 F = fresnelSchlick(F0, NdotV);
+	vec3 specularIBL = prefilteredColor * (F * brdfSample.x + brdfSample.y);
+
+	// 3.3 ambient IBL
+	vec3 ambient = diffuseIBL + specularIBL;
 
 	// 4 Sum up
 	Lo += ambient;

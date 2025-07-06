@@ -14,7 +14,11 @@ namespace lzgl::loader {
 	class AssimpLoader {
 	public:
 
-		static lzgl::renderer::Object* load(const std::string& path);
+		static lzgl::renderer::Object* load(
+			const std::string& path,
+			lzgl::wrapper::Texture* envCubeMap,
+			lzgl::wrapper::Texture* prefilterMap,
+			lzgl::wrapper::Texture* brdfLUT);
 
 	private:
 
@@ -22,13 +26,19 @@ namespace lzgl::loader {
 			aiNode* ainode,
 			lzgl::renderer::Object* parent,
 			const aiScene* scene,
-			const std::string& rootPath
+			const std::string& rootPath,
+			lzgl::wrapper::Texture* envCubeMap,
+			lzgl::wrapper::Texture* prefilterMap,
+			lzgl::wrapper::Texture* brdfLUT
 		);
 
 		static lzgl::renderer::Mesh* processMesh(
 			aiMesh* aimesh,
 			const aiScene* scene,
-			const std::string& rootPath
+			const std::string& rootPath,
+			lzgl::wrapper::Texture* envCubeMap,
+			lzgl::wrapper::Texture* prefilterMap,
+			lzgl::wrapper::Texture* brdfLUT
 		);
 
 		static lzgl::wrapper::Texture* processTexture(

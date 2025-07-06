@@ -4,7 +4,12 @@
 
 namespace lzgl::loader {
 
-	lzgl::renderer::Object* AssimpLoader::load(const std::string& path) {
+	lzgl::renderer::Object* AssimpLoader::load(
+		const std::string& path,
+		lzgl::wrapper::Texture* envCubeMap,
+		lzgl::wrapper::Texture* prefilterMap,
+		lzgl::wrapper::Texture* brdfLUT
+	) {
 
 		std::size_t lastIndex = path.find_last_of("//");
 		auto rootPath = path.substr(0, lastIndex + 1);
@@ -21,12 +26,20 @@ namespace lzgl::loader {
 			return nullptr;
 		}
 
-		processNode(scene->mRootNode, rootNode, scene, rootPath);
+		processNode(scene->mRootNode, rootNode, scene, rootPath, envCubeMap, prefilterMap, brdfLUT);
 
 		return rootNode;
 	}
 
-	void AssimpLoader::processNode(aiNode* ainode, lzgl::renderer::Object* parent, const aiScene* scene, const std::string& rootPath) {
+	void AssimpLoader::processNode(
+		aiNode* ainode, 
+		lzgl::renderer::Object* parent, 
+		const aiScene* scene, 
+		const std::string& rootPath,
+		lzgl::wrapper::Texture* envCubeMap,
+		lzgl::wrapper::Texture* prefilterMap,
+		lzgl::wrapper::Texture* brdfLUT
+	) {
 
 		// 1 Generate node and link parent
 		lzgl::renderer::Object* node = new lzgl::renderer::Object();
@@ -48,7 +61,7 @@ namespace lzgl::loader {
 			int meshID = ainode->mMeshes[i];
 			aiMesh* aimesh = scene->mMeshes[meshID];
 
-			auto mesh = processMesh(aimesh, scene, rootPath);
+			auto mesh = processMesh(aimesh, scene, rootPath, envCubeMap, prefilterMap, brdfLUT);
 
 			node->addChild(mesh);
 		}
@@ -56,11 +69,18 @@ namespace lzgl::loader {
 		// 4 Check child
 		for (int i = 0; i < ainode->mNumChildren; i++) {
 
-			processNode(ainode->mChildren[i], node, scene, rootPath);
+			processNode(ainode->mChildren[i], node, scene, rootPath, envCubeMap, prefilterMap, brdfLUT);
 		}
 	}
 
-	lzgl::renderer::Mesh* AssimpLoader::processMesh(aiMesh* aimesh, const aiScene* scene, const std::string& rootPath) {
+	lzgl::renderer::Mesh* AssimpLoader::processMesh(
+		aiMesh* aimesh, 
+		const aiScene* scene, 
+		const std::string& rootPath,
+		lzgl::wrapper::Texture* envCubeMap,
+		lzgl::wrapper::Texture* prefilterMap,
+		lzgl::wrapper::Texture* brdfLUT
+	) {
 
 		std::vector<float> positions;
 		std::vector<float> normals;
@@ -144,17 +164,9 @@ namespace lzgl::loader {
 				material->mMetallic = lzgl::wrapper::Texture::createNearestTexture("assets/textures/pbr/Cerberus_M.jpg");
 			}
 
-			material->mIrradianceIndirect = lzgl::wrapper::Texture::createExrCubeMap(
-				{
-					"assets/textures/pbr/IBL/env_0.exr",
-					"assets/textures/pbr/IBL/env_1.exr",
-					"assets/textures/pbr/IBL/env_2.exr",
-					"assets/textures/pbr/IBL/env_3.exr",
-					"assets/textures/pbr/IBL/env_4.exr",
-					"assets/textures/pbr/IBL/env_5.exr",
-				}
-				);
-
+			material->mIrradianceIndirect = envCubeMap;
+			material->mPrefilterMap = prefilterMap;
+			material->mBrdfLUT = brdfLUT;
 		}
 
 		return new lzgl::renderer::Mesh(geometry, material);

@@ -1,5 +1,4 @@
 #include "shader.h""
-#include "check_error.h"
 #include <string>
 #include <fstream>
 #include <sstream>

@@ -19,6 +19,11 @@ namespace lzgl::wrapper {
 		static Framebuffer* createGBufferFbo(unsigned int width, unsigned int height);
 		static Framebuffer* createPointShadowFbo(unsigned int width, unsigned int height);
 
+		void bind();
+		void unbind();
+		void setViewport(int width, int height);
+		void attachCubemapFace(lzgl::wrapper::Texture* cubemap, unsigned int face, unsigned int mip);
+
 	public:
 
 		unsigned int mWidth{ 0 };

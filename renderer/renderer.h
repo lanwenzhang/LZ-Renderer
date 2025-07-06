@@ -28,6 +28,11 @@ namespace lzgl::renderer {
 
 		Material* mGlobalMaterial{ nullptr };
 
+		lzgl::wrapper::Texture* generateIrradianceMap(lzgl::wrapper::Texture* equirectTexture, unsigned int resolution);
+		lzgl::wrapper::Texture* generatePrefilterMap(lzgl::wrapper::Texture* envCubeMap, int resolution = 128);
+		lzgl::wrapper::Texture* generateBrdfLUT(int resolution = 512);
+
+
 	private:
 
 		void projectObject(Object* obj);
@@ -42,10 +47,15 @@ namespace lzgl::renderer {
 	private:
 
 		Shader* mScreenShader{ nullptr };
-		Shader* mCubeShader{ nullptr };
+		Shader* mEquirectangularShader{ nullptr };
+		Shader* mIrradianceMapShader{ nullptr };
+		Shader* mPrefilterShader{ nullptr };
+		Shader* mBrdfShader{ nullptr };
 		Shader* mPbrShader{ nullptr };
+
 		Shader* mGBufferShader{ nullptr };
 		Shader* mLightingShader{ nullptr };
+
 		Shader* mShadowDistanceShader{ nullptr };
 		Shader* mPhongPointShadowShader{ nullptr };
 

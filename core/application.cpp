@@ -35,7 +35,7 @@ namespace lzgl::core {
 
 
         // 2 Create a window object
-        mWindow = glfwCreateWindow(mWidth, mHeight, "PBR", NULL, NULL);
+        mWindow = glfwCreateWindow(mWidth, mHeight, "GL Render Pad", NULL, NULL);
         if (mWindow == NULL) {
             return false;
         }
@@ -49,15 +49,10 @@ namespace lzgl::core {
         }
 
         glfwSetFramebufferSizeCallback(mWindow, frameBufferSizeCallback);
-
         glfwSetWindowUserPointer(mWindow, this);
-
         glfwSetKeyCallback(mWindow, keyCallback);
-
         glfwSetMouseButtonCallback(mWindow, mouseCallback);
-
         glfwSetCursorPosCallback(mWindow, cursorCallback);
-
         glfwSetScrollCallback(mWindow, scrollCallback);
 
         return true;

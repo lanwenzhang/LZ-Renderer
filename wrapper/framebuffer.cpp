@@ -2,9 +2,7 @@
 
 namespace lzgl::wrapper {
 
-    Framebuffer::Framebuffer() {
-
-    }
+    Framebuffer::Framebuffer() {}
 
     Framebuffer::Framebuffer(unsigned int width, unsigned int height) {
 
@@ -196,6 +194,34 @@ namespace lzgl::wrapper {
         fb->mHeight = height;
 
         return fb;
+    }
+
+    void Framebuffer::bind()
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, mFBO);
+    }
+
+    void Framebuffer::unbind()
+    {
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
+
+    void Framebuffer::setViewport(int width, int height)
+    {
+        glViewport(0, 0, width, height);
+        mWidth = width;
+        mHeight = height;
+    }
+
+    void Framebuffer::attachCubemapFace(lzgl::wrapper::Texture* cubemap, unsigned int face, unsigned int mip)
+    {
+        glFramebufferTexture2D(
+            GL_FRAMEBUFFER,
+            GL_COLOR_ATTACHMENT0,
+            GL_TEXTURE_CUBE_MAP_POSITIVE_X + face,
+            cubemap->getTexture(),
+            mip
+        );
     }
 
     Framebuffer::~Framebuffer() {

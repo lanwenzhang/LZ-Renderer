@@ -148,7 +148,7 @@ namespace lzgl::wrapper {
         glGenTextures(1, &glTex);
         glBindTexture(GL_TEXTURE_2D, glTex);
 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT, NULL);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, NULL);
 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
@@ -166,6 +166,67 @@ namespace lzgl::wrapper {
         return tex;
     }
 
+    Texture* Texture::createEmptyCubeMapWithMipmap(unsigned int resolution, unsigned int internalFormat, unsigned int unit, unsigned int mipLevels) {
+        Texture* tex = new Texture();
+
+        GLuint glTex;
+        glGenTextures(1, &glTex);
+        glBindTexture(GL_TEXTURE_CUBE_MAP, glTex);
+
+        GLenum format;
+        switch (internalFormat) {
+        case GL_RGB16F:
+        case GL_RGB32F:
+        case GL_RGB:
+            format = GL_RGB;
+            break;
+        case GL_RGBA16F:
+        case GL_RGBA32F:
+        case GL_RGBA:
+            format = GL_RGBA;
+            break;
+        default:
+            format = GL_RGB;
+            break;
+        }
+
+        // Allocate only level 0
+        for (int i = 0; i < 6; ++i) {
+            glTexImage2D(
+                GL_TEXTURE_CUBE_MAP_POSITIVE_X + i,
+                0,
+                internalFormat,
+                resolution,
+                resolution,
+                0,
+                format,
+                GL_FLOAT,
+                nullptr
+            );
+        }
+
+
+        if (mipLevels > 1) {
+            glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LEVEL, mipLevels - 1);
+        }
+
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+        glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        glBindTexture(GL_TEXTURE_CUBE_MAP, 0);
+
+        tex->mTexture = glTex;
+        tex->mWidth = resolution;
+        tex->mHeight = resolution;
+        tex->mUnit = unit;
+        tex->mTextureTarget = GL_TEXTURE_CUBE_MAP;
+
+        return tex;
+    }
+
     Texture* Texture::createNearestTexture(std::string path) {
 
         auto texture = new Texture(path, 0);
@@ -179,7 +240,7 @@ namespace lzgl::wrapper {
     }
 
     Texture* Texture::createExrTexture(std::string path) {
-
+        
         Texture* tex = new Texture();
 
         float* data = nullptr;
@@ -214,7 +275,7 @@ namespace lzgl::wrapper {
         glGenTextures(1, &glTex);
         glBindTexture(GL_TEXTURE_2D, glTex);
 
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGBA, GL_FLOAT, data);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA16F, width, height, 0, GL_RGBA, GL_FLOAT, data);
 
         // 5 Set filter 
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -307,6 +368,18 @@ namespace lzgl::wrapper {
         dTex->mTextureTarget = GL_TEXTURE_CUBE_MAP;
 
         return dTex;
+    }
+
+    Texture* Texture::createFromID(GLuint textureID, unsigned int width, unsigned int height, unsigned int target, unsigned int unit) {
+        Texture* tex = new Texture();
+
+        tex->mTexture = textureID;
+        tex->mWidth = width;
+        tex->mHeight = height;
+        tex->mTextureTarget = target;
+        tex->mUnit = unit;
+
+        return tex;
     }
 
     Texture::Texture() {}
@@ -462,6 +535,11 @@ namespace lzgl::wrapper {
 
         glActiveTexture(GL_TEXTURE0 + mUnit);
         glBindTexture(mTextureTarget, mTexture);
+    }
+
+    void Texture::unbind() {
+
+        glBindTexture(mTextureTarget, 0);
     }
 
 }

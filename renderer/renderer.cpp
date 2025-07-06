@@ -16,8 +16,12 @@ namespace lzgl::renderer {
 	Renderer::Renderer() {
 
 		mScreenShader = new Shader("shaders/screen/screen.vert", "shaders/screen/screen.frag");
-		mCubeShader = new Shader("shaders/skybox/skybox.vert", "shaders/skybox/skybox.frag");
+		mEquirectangularShader = new Shader("shaders/skybox/equirectangular.vert", "shaders/skybox/equirectangular.frag");
 		mPbrShader = new Shader("shaders/pbr/pbr.vert", "shaders/pbr/pbr.frag");
+
+		mIrradianceMapShader = new Shader("shaders/pbr/ibl/diffuse/irradiance_map.vert", "shaders/pbr/ibl/diffuse/irradiance_map.frag");
+		mPrefilterShader = new Shader("shaders/skybox/cubemap.vert", "shaders/pbr/ibl/specular/prefilter.frag");
+		mBrdfShader = new Shader("shaders/screen/screen.vert", "shaders/pbr/ibl/specular/brdf.frag");
 
 		mGBufferShader = new Shader("shaders/deferred/g_buffer.vert", "shaders/deferred/g_buffer.frag");
 		mLightingShader = new Shader("shaders/deferred/lighting.vert", "shaders/deferred/lighting.frag");
@@ -27,6 +31,20 @@ namespace lzgl::renderer {
 	}
 
 	Renderer::~Renderer() {
+
+		delete mScreenShader;
+		delete mEquirectangularShader;
+		delete mIrradianceMapShader;
+		
+		delete mPrefilterShader;
+		delete mBrdfShader;
+		delete mPbrShader;
+
+		delete mGBufferShader;
+		delete mLightingShader;
+
+		delete mShadowDistanceShader;
+		delete mPhongPointShadowShader;
 
 	}
 
@@ -156,7 +174,7 @@ namespace lzgl::renderer {
 			result = mScreenShader;
 			break;
 		case MaterialType::CubeMaterial:
-			result = mCubeShader;
+			result = mEquirectangularShader;
 			break;
 		case MaterialType::PbrMaterial:
 			result = mPbrShader;
@@ -264,6 +282,13 @@ namespace lzgl::renderer {
 				pbrMat->mIrradianceIndirect->setUnit(4);
 				pbrMat->mIrradianceIndirect->bind();
 
+				shader->setInt("prefilterMap", 5);
+				pbrMat->mPrefilterMap->setUnit(5);
+				pbrMat->mPrefilterMap->bind();
+
+				shader->setInt("brdfLUT", 6);
+				pbrMat->mBrdfLUT->setUnit(6);
+				pbrMat->mBrdfLUT->bind();
 
 				for (int i = 0; i < pointLights.size(); i++) {
 
@@ -282,8 +307,10 @@ namespace lzgl::renderer {
 				shader->setMatrix4x4("projectionMatrix", camera->getProjectionMatrix());
 
 				// Texture bind and sampling
-				shader->setInt("cubeSampler", 0);
+				shader->setInt("sphericalSampler", 0);
+				cubeMat->mDiffuse->setUnit(0);
 				cubeMat->mDiffuse->bind();
+
 			}
 										   break;
 			case MaterialType::GBufferMaterial: {
@@ -511,6 +538,165 @@ namespace lzgl::renderer {
 		glBindFramebuffer(GL_FRAMEBUFFER, preFbo);
 		glViewport(preViewport[0], preViewport[1], preViewport[2], preViewport[3]);
 
+	}
+
+	lzgl::wrapper::Texture* Renderer::generateIrradianceMap(lzgl::wrapper::Texture* equirectTexture, unsigned int resolution) {
+		
+		using namespace lzgl::wrapper;
+
+		// 2. Create cubemap, allocate only level 0
+		auto boxGeo = lzgl::renderer::Geometry::createBox(1.0f, true);
+		auto cubemap = Texture::createEmptyCubeMapWithMipmap(resolution, GL_RGBA16F, 0, 1);
+
+		auto fbo = Framebuffer::createHDRFbo(resolution, resolution);
+		fbo->bind();
+
+		glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
+		glm::mat4 captureViews[] = {
+			glm::lookAt(glm::vec3(0,0,0), glm::vec3(1,0,0), glm::vec3(0,-1,0)),
+			glm::lookAt(glm::vec3(0,0,0), glm::vec3(-1,0,0), glm::vec3(0,-1,0)),
+			glm::lookAt(glm::vec3(0,0,0), glm::vec3(0,1,0), glm::vec3(0,0,1)),
+			glm::lookAt(glm::vec3(0,0,0), glm::vec3(0,-1,0), glm::vec3(0,0,-1)),
+			glm::lookAt(glm::vec3(0,0,0), glm::vec3(0,0,1), glm::vec3(0,-1,0)),
+			glm::lookAt(glm::vec3(0,0,0), glm::vec3(0,0,-1), glm::vec3(0,-1,0))
+		};
+
+	
+		mIrradianceMapShader->begin();
+		mIrradianceMapShader->setMatrix4x4("projectionMatrix", captureProjection);
+
+		mIrradianceMapShader->setInt("envMap", 0);
+		equirectTexture->setUnit(0);
+		equirectTexture->bind();
+
+		fbo->setViewport(resolution, resolution);
+
+		glBindVertexArray(boxGeo->getVao());
+
+		for (unsigned int i = 0; i < 6; ++i) {
+			mIrradianceMapShader->setMatrix4x4("viewMatrix", captureViews[i]);
+			mIrradianceMapShader->setMatrix4x4("modelMatrix", glm::mat4(1.0f));
+
+			fbo->attachCubemapFace(cubemap, i, 0);
+
+			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+			glDrawElements(GL_TRIANGLES, boxGeo->getIndicesCount(), GL_UNSIGNED_INT, 0);
+		}
+		glBindVertexArray(0);
+
+		mIrradianceMapShader->end();
+		fbo->unbind();
+
+		// 3. Generate all mipmaps
+		cubemap->bind();
+		glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+		cubemap->unbind();
+
+		return cubemap;
+	}
+
+	lzgl::wrapper::Texture* Renderer::generatePrefilterMap(lzgl::wrapper::Texture* envCubeMap, int resolution) {
+		using namespace lzgl::wrapper;
+
+		unsigned int maxMipLevels = 5;
+
+		auto prefilterMap = Texture::createEmptyCubeMapWithMipmap(
+			resolution,
+			GL_RGBA16F,
+			0,
+			maxMipLevels
+		);
+
+		auto fbo = Framebuffer::createHDRFbo(resolution, resolution);
+		fbo->bind();
+
+		glm::mat4 captureProjection = glm::perspective(glm::radians(90.0f), 1.0f, 0.1f, 10.0f);
+		glm::mat4 captureViews[] = {
+			glm::lookAt(glm::vec3(0,0,0), glm::vec3(1,0,0), glm::vec3(0,-1,0)),
+			glm::lookAt(glm::vec3(0,0,0), glm::vec3(-1,0,0), glm::vec3(0,-1,0)),
+			glm::lookAt(glm::vec3(0,0,0), glm::vec3(0,1,0), glm::vec3(0,0,1)),
+			glm::lookAt(glm::vec3(0,0,0), glm::vec3(0,-1,0), glm::vec3(0,0,-1)),
+			glm::lookAt(glm::vec3(0,0,0), glm::vec3(0,0,1), glm::vec3(0,-1,0)),
+			glm::lookAt(glm::vec3(0,0,0), glm::vec3(0,0,-1), glm::vec3(0,-1,0))
+		};
+
+		auto boxGeo = lzgl::renderer::Geometry::createBox(1.0f, true);
+		mPrefilterShader->begin();
+		mPrefilterShader->setMatrix4x4("projectionMatrix", captureProjection);
+		mPrefilterShader->setInt("environmentMap", 0);
+
+		envCubeMap->setUnit(0);
+		envCubeMap->bind();
+
+		glBindVertexArray(boxGeo->getVao());
+
+		for (unsigned int mip = 0; mip < maxMipLevels; ++mip) {
+			unsigned int mipWidth = static_cast<unsigned int>(resolution * std::pow(0.5, mip));
+			unsigned int mipHeight = static_cast<unsigned int>(resolution * std::pow(0.5, mip));
+
+			fbo->setViewport(mipWidth, mipHeight);
+
+			float roughness = (float)mip / (float)(maxMipLevels - 1);
+			mPrefilterShader->setFloat("roughness", roughness);
+
+			for (unsigned int i = 0; i < 6; ++i) {
+				mPrefilterShader->setMatrix4x4("viewMatrix", captureViews[i]);
+				mPrefilterShader->setMatrix4x4("modelMatrix", glm::mat4(1.0f));
+				fbo->attachCubemapFace(prefilterMap, i, mip);
+
+				glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+				glDrawElements(GL_TRIANGLES, boxGeo->getIndicesCount(), GL_UNSIGNED_INT, 0);
+			}
+		}
+
+		glBindVertexArray(0);
+
+		mPrefilterShader->end();
+		fbo->unbind();
+
+		// Optional but safe:
+		prefilterMap->bind();
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAX_LEVEL, maxMipLevels - 1);
+		glGenerateMipmap(GL_TEXTURE_CUBE_MAP);
+		prefilterMap->unbind();
+
+		return prefilterMap;
+	}
+
+	lzgl::wrapper::Texture* Renderer::generateBrdfLUT(int resolution) {
+		
+		using namespace lzgl::wrapper;
+
+		auto fbo = Framebuffer::createHDRFbo(resolution, resolution);
+		fbo->bind();
+
+		unsigned int brdfLUTTex;
+		glGenTextures(1, &brdfLUTTex);
+		glBindTexture(GL_TEXTURE_2D, brdfLUTTex);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RG16F, resolution, resolution, 0, GL_RG, GL_FLOAT, nullptr);
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, brdfLUTTex, 0);
+
+		auto quadGeo = lzgl::renderer::Geometry::createScreenPlane();
+
+		fbo->setViewport(resolution, resolution);
+
+		mBrdfShader->begin();
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glBindVertexArray(quadGeo->getVao());
+		glDrawElements(GL_TRIANGLES, quadGeo->getIndicesCount(), GL_UNSIGNED_INT, 0);
+		glBindVertexArray(0);
+
+		mBrdfShader->end();
+		fbo->unbind();
+
+		return Texture::createFromID(brdfLUTTex, resolution, resolution, GL_TEXTURE_2D, 0);
 	}
 
 	void Renderer::setClearColor(glm::vec3 color) {

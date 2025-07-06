@@ -31,6 +31,8 @@ namespace lzgl::wrapper {
 		// ibl
 		static Texture* createExrTexture(std::string path);
 		static Texture* createExrCubeMap(std::vector<std::string> paths);
+		static Texture* createEmptyCubeMapWithMipmap(unsigned int resolution, unsigned int internalFormat, unsigned int unit, unsigned int mipLevels);
+		static Texture* createFromID(GLuint textureID, unsigned int width, unsigned int height, unsigned int target, unsigned int unit);
 
 		// cube map
 		Texture(const std::vector<std::string>& paths, unsigned int unit, unsigned int internalFormat = GL_RGBA);
@@ -41,11 +43,13 @@ namespace lzgl::wrapper {
 		~Texture();
 
 		void bind();
+		void unbind();
 		void setUnit(unsigned int unit) { mUnit = unit; }
 
 		int getWidth()const { return mWidth; }
 		int getHeight() const { return mHeight; }
 		GLuint getTexture()const { return mTexture; }
+		unsigned int getTextureTarget() const{ return mTextureTarget; }
 
 	private:
 

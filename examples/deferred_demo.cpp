@@ -1,6 +1,5 @@
 #include "../common.h"
 #include "../core/application.h"
-#include "../wrapper/check_error.h"
 #include "../wrapper/shader.h"
 #include "../wrapper/framebuffer.h"
 #include "../wrapper/texture.h"
@@ -50,7 +49,7 @@ int displayMode = 0;
 
 void OnResize(int width, int height) {
 
-    GL_CALL(glViewport(0, 0, width, height));
+    glViewport(0, 0, width, height);
 }
 
 void OnKey(int key, int action, int mods) {
@@ -247,8 +246,8 @@ int main() {
     glApp->setScrollCallback(OnScroll);
 
     // 3 Set openGl rendering viewport and clear canvas color
-    GL_CALL(glViewport(0, 0, WIDTH, HEIGHT));
-    GL_CALL(glClearColor(0.0f, 0.18f, 0.65f, 1.0f));
+    glViewport(0, 0, WIDTH, HEIGHT);
+    glClearColor(0.0f, 0.18f, 0.65f, 1.0f);
 
     prepareCamera();
     prepare();
