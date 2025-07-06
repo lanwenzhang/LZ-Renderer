@@ -61,6 +61,7 @@ cmake -G "Visual Studio 17 2022" -A x64 ..
 ## Reference
 * [Learn OpenGL Tutorial](https://learnopengl.com)
 * [OGLDEV OpenGL Tutorial](https://ogldev.org)
+* [GAMES 101, Introduction to Computer Graphics](https://sites.cs.ucsb.edu/~lingqi/teaching/games101.html)
 * [GAMES 202, Advanced Real-time Rendering](https://sites.cs.ucsb.edu/~lingqi/teaching/games202.html)
 * [Poly Haven](https://polyhaven.com/)
 * [three.js](https://threejs-journey.com/)
