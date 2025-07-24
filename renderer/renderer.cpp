@@ -20,7 +20,7 @@ namespace lzgl::renderer {
 		mPbrShader = new Shader("shaders/pbr/pbr.vert", "shaders/pbr/pbr.frag");
 
 		mIrradianceMapShader = new Shader("shaders/pbr/ibl/diffuse/irradiance_map.vert", "shaders/pbr/ibl/diffuse/irradiance_map.frag");
-		mPrefilterShader = new Shader("shaders/skybox/cubemap.vert", "shaders/pbr/ibl/specular/prefilter.frag");
+		mPrefilterShader = new Shader("shaders/skybox/equirectangular.vert", "shaders/pbr/ibl/specular/prefilter.frag");
 		mBrdfShader = new Shader("shaders/screen/screen.vert", "shaders/pbr/ibl/specular/brdf.frag");
 
 		mGBufferShader = new Shader("shaders/deferred/g_buffer.vert", "shaders/deferred/g_buffer.frag");
@@ -71,14 +71,11 @@ namespace lzgl::renderer {
 
 		// 1.3 Stencil test
 		glEnable(GL_STENCIL_TEST);
-
 		glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-
 		glStencilMask(0xFF);
 
 		// 1.4 Blend
 		glDisable(GL_BLEND);
-
 
 		// 2 Clear canvas
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
@@ -90,12 +87,11 @@ namespace lzgl::renderer {
 
 		projectObject(scene);
 
-		// 3.3 Sort objects
+		// 3.2 Sort objects
 		std::sort(
 			mTransparentObjects.begin(),
 			mTransparentObjects.end(),
 			[camera](const Mesh* a, const Mesh* b) {
-
 
 				auto viewMatrix = camera->getViewMatrix();
 
@@ -596,7 +592,7 @@ namespace lzgl::renderer {
 		return cubemap;
 	}
 
-	lzgl::wrapper::Texture* Renderer::generatePrefilterMap(lzgl::wrapper::Texture* envCubeMap, int resolution) {
+	lzgl::wrapper::Texture* Renderer::generatePrefilterMap(lzgl::wrapper::Texture* envCubeMap, unsigned int resolution) {
 		using namespace lzgl::wrapper;
 
 		unsigned int maxMipLevels = 5;

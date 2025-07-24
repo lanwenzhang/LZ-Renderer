@@ -60,14 +60,10 @@ namespace lzgl::renderer {
 		// 1 Scale (local coordinate)
 		glm::mat4 transform{ 1.0f };
 
-
 		// 2 Rotate (local coordinate)
 		transform = glm::scale(transform, mScale);
-
 		transform = glm::rotate(transform, glm::radians(mAngleX), glm::vec3(1.0f, 0.0f, 0.0f));
-
 		transform = glm::rotate(transform, glm::radians(mAngleY), glm::vec3(0.0f, 1.0f, 0.0f));
-
 		transform = glm::rotate(transform, glm::radians(mAngleZ), glm::vec3(0.0f, 0.0f, 1.0f));
 
 		// 3 Translate (global coordinate)
@@ -79,7 +75,6 @@ namespace lzgl::renderer {
 	glm::vec3 Object::getDirection() const {
 
 		auto modelMatrix = glm::mat3(getModelMatrix());
-
 		auto dir = glm::normalize(-modelMatrix[2]);
 
 		return dir;
@@ -109,5 +104,4 @@ namespace lzgl::renderer {
 	Object* Object::getParent() {
 		return mParent;
 	}
-
 }

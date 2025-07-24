@@ -35,7 +35,7 @@ void main(){
 			// 1 Polar coordinates to local coodinates
 			vec3 localVec = vec3(sin(theta) * cos(phi), sin(theta) * sin(phi), cos(theta));
 
-			// 2 Local coodinates
+			// 2 Local coodinates to world coordinates
 			vec3 worldVec = localVec.x * right + localVec.y * up + localVec.z * normal;
 
 			// 3 World coodinates to sphere map

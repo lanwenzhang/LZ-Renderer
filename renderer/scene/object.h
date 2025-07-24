@@ -12,7 +12,6 @@ namespace lzgl::renderer {
 	};
 
 	class Object {
-
 	public:
 
 		Object();
@@ -26,7 +25,6 @@ namespace lzgl::renderer {
 		void rotateX(float angle);
 		void rotateY(float angle);
 		void rotateZ(float angle);
-
 		void setAngleX(float angle);
 		void setAngleY(float angle);
 		void setAngleZ(float angle);
@@ -37,7 +35,7 @@ namespace lzgl::renderer {
 		glm::mat4 getModelMatrix() const;
 		glm::vec3 getDirection() const;
 
-		// Parent
+		// Hierachy
 		void addChild(Object* obj);
 		std::vector<Object*> getChildren();
 		Object* getParent();
@@ -45,7 +43,6 @@ namespace lzgl::renderer {
 		ObjectType getType() const { return mType; }
 
 	protected:
-
 		glm::vec3 mPosition{ 0.0f };
 
 		float mAngleX{ 0.0f };
@@ -54,11 +51,9 @@ namespace lzgl::renderer {
 
 		glm::vec3 mScale{ 1.0f };
 
-		// Parent and children
-		std::vector<Object*> mChildren{};
-		Object* mParent{ nullptr };
-
 		ObjectType mType;
+		Object* mParent{ nullptr };
+		std::vector<Object*> mChildren{};
 	};
 }
 

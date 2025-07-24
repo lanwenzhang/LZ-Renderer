@@ -29,7 +29,7 @@ namespace lzgl::renderer {
 		Material* mGlobalMaterial{ nullptr };
 
 		lzgl::wrapper::Texture* generateIrradianceMap(lzgl::wrapper::Texture* equirectTexture, unsigned int resolution);
-		lzgl::wrapper::Texture* generatePrefilterMap(lzgl::wrapper::Texture* envCubeMap, int resolution = 128);
+		lzgl::wrapper::Texture* generatePrefilterMap(lzgl::wrapper::Texture* envCubeMap, unsigned int resolution = 512);
 		lzgl::wrapper::Texture* generateBrdfLUT(int resolution = 512);
 
 

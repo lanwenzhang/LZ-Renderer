@@ -42,7 +42,6 @@ void possionDiskSamples(vec2 randomSeed){
 	float angleTheta = rand_2to1(randomSeed) * PI2;
 	float angleFi = rand_2to1(randomSeed) * PI2;
 
-
 	// 2 Initial radius
 	float radius = 1.0 / float(NUM_SAMPLES);
 

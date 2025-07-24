@@ -7,10 +7,7 @@ in vec3 normal;
 in vec3 worldPosition;
 in mat3 tbn;
 
-uniform float intensity;
 uniform vec3 cameraPosition;
-
-#include "../common/light_struct.glsl"
 
 // material textures
 uniform sampler2D albedoTex;
@@ -23,6 +20,8 @@ uniform samplerCube irradianceMap;
 uniform samplerCube prefilterMap;
 uniform sampler2D brdfLUT;
 
+// Lighting
+#include "../common/light_struct.glsl"
 uniform PointLight pointLights[4];
 
 #define PI 3.141592653589793
@@ -75,9 +74,9 @@ vec3 fresnelSchlick(vec3 F0, float HdotV){
 
 }
 
-vec3 fresnelSchlickRoughness(vec3 F0, float HdotV, float roughness){
+vec3 fresnelSchlickRoughness(vec3 F0, float NdotV, float roughness){
 
-	return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow((1.0 - HdotV), 5.0);
+	return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow((1.0 - NdotV), 5.0);
 
 }
 
@@ -148,7 +147,7 @@ void main()
 	float NdotV = max(dot(N, V), 0.0);
 	vec2 brdfSample = texture(brdfLUT, vec2(NdotV, roughness)).rg;
 
-	vec3 F = fresnelSchlick(F0, NdotV);
+	vec3 F = fresnelSchlickRoughness(F0, max(dot(N, V), 0.0), roughness);
 	vec3 specularIBL = prefilteredColor * (F * brdfSample.x + brdfSample.y);
 
 	// 3.3 ambient IBL

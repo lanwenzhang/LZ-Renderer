@@ -25,7 +25,7 @@
 
 // 1 Global variables
 // 1.1 Window
-int WIDTH = 2560;
+int WIDTH = 1920;
 int HEIGHT = 1080;
 glm::vec3 clearColor{};
 
@@ -89,10 +89,10 @@ void prepare() {
     sceneOff = new lzgl::renderer::Scene();
     scene = new lzgl::renderer::Scene();
 
-    // Prefilter
+    // Pre compute
     auto equirectTexture = lzgl::wrapper::Texture::createExrTexture("assets/textures/pbr/qwantani_dusk_2_4k.exr");
     auto irradianceMap = renderer->generateIrradianceMap(equirectTexture, 512);
-    auto globalPrefilterMap = renderer->generatePrefilterMap(irradianceMap);
+    auto globalPrefilterMap = renderer->generatePrefilterMap(equirectTexture, 512);
     auto globalBrdfLUT = renderer->generateBrdfLUT();
 
     // Pass 01
@@ -101,6 +101,7 @@ void prepare() {
     gun->setScale(glm::vec3(0.1f, 0.1f, 0.1f));
     gun->setPosition(glm::vec3(0.0f, 0.0f, 0.0f));
     gun->rotateZ(180.0f);
+    //gun->rotateY(-90.0f);
     sceneOff->addChild(gun);
 
     // Cube map
